@@ -64,7 +64,6 @@ func HasActiveWorkflow(hwID packet.HardwareID) (bool, error) {
 	}
 	for _, wf := range (*wcl).WorkflowContexts {
 		if wf.CurrentActionState == tw.State_STATE_PENDING || wf.CurrentActionState == tw.State_STATE_RUNNING {
-			joblog.With("workflowID", wf.WorkflowId).Info("found active workflow for hardware")
 			return true, nil
 		}
 	}
