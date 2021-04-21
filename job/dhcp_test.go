@@ -69,9 +69,8 @@ func TestSetPXEFilename(t *testing.T) {
 			}
 
 			instance := &packet.Instance{
-				ID:       tt.id,
-				State:    packet.InstanceState(tt.iState),
-				AllowPXE: tt.allowPXE,
+				ID:    tt.id,
+				State: packet.InstanceState(tt.iState),
 				OSV: &packet.OperatingSystem{
 					OsSlug: tt.slug,
 				},
@@ -80,6 +79,7 @@ func TestSetPXEFilename(t *testing.T) {
 				Logger: joblog.With("index", i, "hState", tt.hState, "id", tt.id, "iState", tt.iState, "slug", tt.slug, "plan", tt.plan, "allowPXE", tt.allowPXE, "packet", tt.packet, "arm", tt.arm, "uefi", tt.uefi, "filename", tt.filename),
 				hardware: &packet.HardwareCacher{
 					ID:       "$hardware_id",
+					AllowPXE: tt.allowPXE,
 					State:    packet.HardwareState(tt.hState),
 					PlanSlug: "baremetal_" + tt.plan,
 					Instance: instance,
