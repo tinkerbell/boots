@@ -119,6 +119,14 @@ func (j Job) setPXEFilename(rep *dhcp4.Packet, isPacket, isARM, isUEFI bool) {
 		// custom_ipxe or rescue
 	}
 
+	if !j.isPXEAllowed() {
+		// Always honor allow_pxe.
+		// We set a filename because if a machine is actually trying to PXE and nothing is sent it may hang for
+		// a while waiting for any possible ProxyDHCP packets and it would delay booting to disks and phoning-home.
+		dhcp.SetFilename(rep, "/pxe-is-not-allowed", conf.PublicIPv4, true)
+		return
+	}
+
 	var filename string
 	var pxeClient bool
 	if !isPacket {
@@ -131,29 +139,14 @@ func (j Job) setPXEFilename(rep *dhcp4.Packet, isPacket, isARM, isUEFI bool) {
 		} else {
 			filename = "undionly.kpxe"
 		}
-	} else if !j.isPXEAllowed() {
-		// Always honor allow_pxe.
-		// We set a filename because if a machine is actually trying to PXE and nothing is sent it may hang for
-		// a while waiting for any possible ProxyDHCP packets and it would delay booting to disks and phoning-home.
-		//
-		// Why we wait until here instead of sending the file name early on? I don't know. We should not need to
-		// send our iPXE, boot into it, and then send /nonexistent afaik.
-		//
-		// TODO(mmlb) try to move this logic to much earlier in the function, maybe all the way as the first thing even.
 
-		os := j.OperatingSystem()
-		j.With("instance.state", j.instance.State, "os_slug", os.Slug, "os_distro", os.Distro, "os_version", os.Version).Info()
-		pxeClient = true
-		filename = "/nonexistent"
+		if filename == "" {
+			j.Error(errors.New("unable to figure out iPXE to serve"))
+			return
+		}
 	} else {
 		pxeClient = true
 		filename = "http://" + conf.PublicFQDN + "/auto.ipxe"
-	}
-
-	if filename == "" {
-		err := errors.New("no filename is set")
-		j.Error(err)
-		return
 	}
 
 	dhcp.SetFilename(rep, filename, conf.PublicIPv4, pxeClient)
