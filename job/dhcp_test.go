@@ -16,11 +16,10 @@ func TestGetPXEFilename(t *testing.T) {
 	var getPXEFilenameTests = []struct {
 		name     string
 		iState   string
-		plan     string
 		allowPXE bool
 		ouriPXE  bool
-		arm      bool
-		uefi     bool
+		arch     string
+		firmware string
 		filename string
 	}{
 		{name: "inactive instance",
@@ -29,52 +28,51 @@ func TestGetPXEFilename(t *testing.T) {
 			iState:   "active",
 			filename: "/pxe-is-not-allowed"},
 		{name: "PXE is allowed for non active instance",
-			allowPXE: true,
+			iState: "not_active", allowPXE: true, arch: "x86", firmware: "bios",
 			filename: "undionly.kpxe"},
 		{name: "our embedded iPXE wants iPXE script",
 			ouriPXE: true, allowPXE: true,
 			filename: "http://" + conf.PublicFQDN + "/auto.ipxe"},
 		{name: "2a2",
-			plan: "2a2", allowPXE: true,
+			arch: "hua", allowPXE: true,
 			filename: "snp-hua.efi"},
 		{name: "arm",
-			arm: true, allowPXE: true,
+			arch: "arm", firmware: "uefi", allowPXE: true,
 			filename: "snp-nolacp.efi"},
 		{name: "hua",
-			plan: "hua", allowPXE: true,
+			arch: "hua", allowPXE: true,
 			filename: "snp-hua.efi"},
 		{name: "x86 bios",
-			allowPXE: true,
+			arch: "x86", firmware: "bios", allowPXE: true,
 			filename: "undionly.kpxe"},
 		{name: "x86 uefi",
-			uefi: true, allowPXE: true,
+			arch: "x86", firmware: "uefi", allowPXE: true,
 			filename: "ipxe.efi"},
+		{name: "unknown arch",
+			arch: "riscv", allowPXE: true},
+		{name: "unknown firmware",
+			arch: "coreboot", allowPXE: true},
 	}
 
 	for i, tt := range getPXEFilenameTests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Logf("index=%d iState=%q plan=%q allowPXE=%v ouriPXE=%v arm=%v uefi=%v filename=%q",
-				i, tt.iState, tt.plan, tt.allowPXE, tt.ouriPXE, tt.arm, tt.uefi, tt.filename)
-
-			if tt.plan == "" {
-				tt.plan = "0"
-			}
+			t.Logf("index=%d iState=%q allowPXE=%v ouriPXE=%v arch=%v platfrom=%v filename=%q",
+				i, tt.iState, tt.allowPXE, tt.ouriPXE, tt.arch, tt.firmware, tt.filename)
 
 			instance := &packet.Instance{
 				ID:    uuid.New().String(),
 				State: packet.InstanceState(tt.iState),
 			}
 			j := Job{
-				Logger: joblog.With("index", i, "iState", tt.iState, "plan", tt.plan, "allowPXE", tt.allowPXE, "ouriPXE", tt.ouriPXE, "arm", tt.arm, "uefi", tt.uefi, "filename", tt.filename),
+				Logger: joblog.With("index", i, "iState", tt.iState, "allowPXE", tt.allowPXE, "ouriPXE", tt.ouriPXE, "arch", tt.arch, "firmware", tt.firmware, "filename", tt.filename),
 				hardware: &packet.HardwareCacher{
 					ID:       uuid.New().String(),
 					AllowPXE: tt.allowPXE,
-					PlanSlug: "baremetal_" + tt.plan,
 					Instance: instance,
 				},
 				instance: instance,
 			}
-			filename := j.getPXEFilename(tt.ouriPXE, tt.arm, tt.uefi)
+			filename := j.getPXEFilename(tt.arch, tt.firmware, tt.ouriPXE)
 			if tt.filename != filename {
 				t.Fatalf("unexpected filename want:%q, got:%q", tt.filename, filename)
 			}

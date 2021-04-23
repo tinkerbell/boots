@@ -59,14 +59,26 @@ func (j Job) configureDHCP(rep, req *dhcp4.Packet) bool {
 		return false
 	}
 	if dhcp.SetupPXE(rep, req) {
+		arch := "x86"
+		firmware := "bios"
+
 		isARM := dhcp.IsARM(req)
 		if dhcp.Arch(req) != j.Arch() {
 			j.With("dhcp", dhcp.Arch(req), "job", j.Arch()).Info("arch mismatch, using dhcp")
+		}
+		if isARM {
+			arch = "arm"
+			if parch := j.PArch(); parch == "2a2" || parch == "hua" {
+				arch = "hua"
+			}
 		}
 
 		isUEFI := dhcp.IsUEFI(req)
 		if isUEFI != j.IsUEFI() {
 			j.With("dhcp", isUEFI, "job", j.IsUEFI()).Info("uefi mismatch, using dhcp")
+		}
+		if isUEFI {
+			firmware = "uefi"
 		}
 
 		isOuriPXE := ipxe.IsOuriPXE(req)
@@ -74,7 +86,7 @@ func (j Job) configureDHCP(rep, req *dhcp4.Packet) bool {
 			ipxe.Setup(rep)
 		}
 
-		if filename := j.getPXEFilename(isOuriPXE, isARM, isUEFI); filename != "" {
+		if filename := j.getPXEFilename(arch, firmware, isOuriPXE); filename != "" {
 			dhcp.SetFilename(rep, filename, conf.PublicIPv4)
 		}
 	}
@@ -99,7 +111,7 @@ func (j Job) areWeProvisioner() bool {
 	return j.hardware.HardwareProvisioner() == j.ProvisionerEngineName()
 }
 
-func (j Job) getPXEFilename(isOuriPXE, isARM, isUEFI bool) string {
+func (j Job) getPXEFilename(arch, firmware string, isOuriPXE bool) string {
 	if !j.isPXEAllowed() {
 		if j.instance != nil && j.instance.State == "active" {
 			// We set a filename because if a machine is actually trying to PXE and nothing is sent it may hang for
@@ -112,13 +124,14 @@ func (j Job) getPXEFilename(isOuriPXE, isARM, isUEFI bool) string {
 
 	var filename string
 	if !isOuriPXE {
-		if j.PArch() == "hua" || j.PArch() == "2a2" {
+		switch {
+		case arch == "hua":
 			filename = "snp-hua.efi"
-		} else if isARM {
+		case arch == "arm" && firmware == "uefi":
 			filename = "snp-nolacp.efi"
-		} else if isUEFI {
+		case arch == "x86" && firmware == "uefi":
 			filename = "ipxe.efi"
-		} else {
+		case arch == "x86" && firmware == "bios":
 			filename = "undionly.kpxe"
 		}
 	} else {
