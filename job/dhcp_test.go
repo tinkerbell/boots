@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	dhcp4 "github.com/packethost/dhcp4-go"
 	assert "github.com/stretchr/testify/require"
 	"github.com/tinkerbell/boots/conf"
@@ -16,10 +17,7 @@ func TestSetPXEFilename(t *testing.T) {
 
 	var setPXEFilenameTests = []struct {
 		name     string
-		hState   string
-		id       string
 		iState   string
-		slug     string
 		plan     string
 		allowPXE bool
 		ouriPXE  bool
@@ -27,71 +25,58 @@ func TestSetPXEFilename(t *testing.T) {
 		uefi     bool
 		filename string
 	}{
-		{name: "in_use: just in_use",
-			hState: "in_use"},
-		{name: "in_use: no instance state",
-			hState: "in_use", id: "$instance_id", iState: ""},
-		{name: "in_use: instance not active",
-			hState: "in_use", id: "$instance_id", iState: "not_active"},
-		{name: "in_use: instance active",
-			hState: "in_use", id: "$instance_id", iState: "active"},
-		{name: "in_use: active not custom ipxe",
-			hState: "in_use", id: "$instance_id", iState: "active", slug: "not_custom_ipxe"},
-		{name: "in_use: active custom ipxe",
-			hState: "in_use", id: "$instance_id", iState: "active", allowPXE: true, slug: "custom_ipxe",
+		{name: "inactive instance",
+			iState: "not_active"},
+		{name: "active instance",
+			iState:   "active",
+			filename: "/pxe-is-not-allowed"},
+		{name: "PXE is allowed for non active instance",
+			allowPXE: true,
 			filename: "undionly.kpxe"},
-		{name: "in_use: active custom ipxe with allow pxe",
-			hState: "in_use", id: "$instance_id", iState: "active", allowPXE: true,
-			filename: "undionly.kpxe"},
-		{name: "hua",
-			plan: "hua", allowPXE: true,
-			filename: "snp-hua.efi"},
+		{name: "our embedded iPXE wants iPXE script",
+			ouriPXE: true, allowPXE: true,
+			filename: "http://" + conf.PublicFQDN + "/auto.ipxe"},
 		{name: "2a2",
 			plan: "2a2", allowPXE: true,
 			filename: "snp-hua.efi"},
 		{name: "arm",
 			arm: true, allowPXE: true,
 			filename: "snp-nolacp.efi"},
+		{name: "hua",
+			plan: "hua", allowPXE: true,
+			filename: "snp-hua.efi"},
+		{name: "x86 bios",
+			allowPXE: true,
+			filename: "undionly.kpxe"},
 		{name: "x86 uefi",
 			uefi: true, allowPXE: true,
 			filename: "ipxe.efi"},
-		{name: "all defaults",
-			allowPXE: true,
-			filename: "undionly.kpxe"},
-		{name: "PXE not allowed",
-			filename: "/pxe-is-not-allowed"},
-		{name: "packet iPXE PXE allowed",
-			ouriPXE: true, id: "$instance_id", allowPXE: true, filename: "http://" + conf.PublicFQDN + "/auto.ipxe"},
 	}
 
 	for i, tt := range setPXEFilenameTests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Logf("index=%d hState=%q id=%q iState=%q slug=%q plan=%q allowPXE=%v ouriPXE=%v arm=%v uefi=%v filename=%q",
-				i, tt.hState, tt.id, tt.iState, tt.slug, tt.plan, tt.allowPXE, tt.ouriPXE, tt.arm, tt.uefi, tt.filename)
+			t.Logf("index=%d iState=%q plan=%q allowPXE=%v ouriPXE=%v arm=%v uefi=%v filename=%q",
+				i, tt.iState, tt.plan, tt.allowPXE, tt.ouriPXE, tt.arm, tt.uefi, tt.filename)
 
 			if tt.plan == "" {
 				tt.plan = "0"
 			}
 
 			instance := &packet.Instance{
-				ID:    tt.id,
+				ID:    uuid.New().String(),
 				State: packet.InstanceState(tt.iState),
-				OSV: &packet.OperatingSystem{
-					OsSlug: tt.slug,
-				},
 			}
 			j := Job{
-				Logger: joblog.With("index", i, "hState", tt.hState, "id", tt.id, "iState", tt.iState, "slug", tt.slug, "plan", tt.plan, "allowPXE", tt.allowPXE, "ouriPXE", tt.ouriPXE, "arm", tt.arm, "uefi", tt.uefi, "filename", tt.filename),
+				Logger: joblog.With("index", i, "iState", tt.iState, "plan", tt.plan, "allowPXE", tt.allowPXE, "ouriPXE", tt.ouriPXE, "arm", tt.arm, "uefi", tt.uefi, "filename", tt.filename),
 				hardware: &packet.HardwareCacher{
-					ID:       "$hardware_id",
+					ID:       uuid.New().String(),
 					AllowPXE: tt.allowPXE,
-					State:    packet.HardwareState(tt.hState),
 					PlanSlug: "baremetal_" + tt.plan,
 					Instance: instance,
 				},
 				instance: instance,
 			}
-			rep := dhcp4.NewPacket(42)
+			rep := dhcp4.NewPacket(dhcp4.BootReply)
 			j.setPXEFilename(&rep, tt.ouriPXE, tt.arm, tt.uefi)
 			filename := string(bytes.TrimRight(rep.File(), "\x00"))
 

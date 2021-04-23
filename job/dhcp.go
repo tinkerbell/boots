@@ -98,32 +98,13 @@ func (j Job) areWeProvisioner() bool {
 }
 
 func (j Job) setPXEFilename(rep *dhcp4.Packet, isOuriPXE, isARM, isUEFI bool) {
-	if j.HardwareState() == "in_use" {
-		if j.InstanceID() == "" {
-			j.Error(errors.New("setPXEFilename called on a job with no instance"))
-			return
-		}
-
-		if j.instance.State != "active" {
-			j.With("hardware.state", j.HardwareState(), "instance.state", j.instance.State).Info("device should NOT be trying to PXE boot")
-			return
-		}
-
-		// ignore custom_ipxe because we always do dhcp for it and we'll want to do /nonexistent filename so
-		// nics don't timeout.... but why though?
-		if !j.isPXEAllowed() && j.hardware.OperatingSystem().OsSlug != "custom_ipxe" {
-			err := errors.New("device should NOT be trying to PXE boot")
-			j.With("hardware.state", j.HardwareState(), "allow_pxe", j.isPXEAllowed(), "os", j.hardware.OperatingSystem().OsSlug).Info(err)
-			return
-		}
-		// custom_ipxe or rescue
-	}
-
 	if !j.isPXEAllowed() {
-		// Always honor allow_pxe.
-		// We set a filename because if a machine is actually trying to PXE and nothing is sent it may hang for
-		// a while waiting for any possible ProxyDHCP packets and it would delay booting to disks and phoning-home.
-		dhcp.SetFilename(rep, "/pxe-is-not-allowed", conf.PublicIPv4, true)
+		if j.instance != nil && j.instance.State == "active" {
+			// We set a filename because if a machine is actually trying to PXE and nothing is sent it may hang for
+			// a while waiting for any possible ProxyDHCP packets and it would delay booting from disks.
+			// This short cuts all that when we know we want to be booting from disk.
+			dhcp.SetFilename(rep, "/pxe-is-not-allowed", conf.PublicIPv4, true)
+		}
 		return
 	}
 
