@@ -1,21 +1,19 @@
 package job
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
-	dhcp4 "github.com/packethost/dhcp4-go"
 	assert "github.com/stretchr/testify/require"
 	"github.com/tinkerbell/boots/conf"
 	"github.com/tinkerbell/boots/packet"
 )
 
-func TestSetPXEFilename(t *testing.T) {
+func TestGetPXEFilename(t *testing.T) {
 	conf.PublicFQDN = "boots-testing.packet.net"
 
-	var setPXEFilenameTests = []struct {
+	var getPXEFilenameTests = []struct {
 		name     string
 		iState   string
 		plan     string
@@ -53,7 +51,7 @@ func TestSetPXEFilename(t *testing.T) {
 			filename: "ipxe.efi"},
 	}
 
-	for i, tt := range setPXEFilenameTests {
+	for i, tt := range getPXEFilenameTests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Logf("index=%d iState=%q plan=%q allowPXE=%v ouriPXE=%v arm=%v uefi=%v filename=%q",
 				i, tt.iState, tt.plan, tt.allowPXE, tt.ouriPXE, tt.arm, tt.uefi, tt.filename)
@@ -76,10 +74,7 @@ func TestSetPXEFilename(t *testing.T) {
 				},
 				instance: instance,
 			}
-			rep := dhcp4.NewPacket(dhcp4.BootReply)
-			j.setPXEFilename(&rep, tt.ouriPXE, tt.arm, tt.uefi)
-			filename := string(bytes.TrimRight(rep.File(), "\x00"))
-
+			filename := j.getPXEFilename(tt.ouriPXE, tt.arm, tt.uefi)
 			if tt.filename != filename {
 				t.Fatalf("unexpected filename want:%q, got:%q", tt.filename, filename)
 			}
