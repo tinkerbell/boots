@@ -22,7 +22,7 @@ func TestSetPXEFilename(t *testing.T) {
 		slug     string
 		plan     string
 		allowPXE bool
-		packet   bool
+		ouriPXE  bool
 		arm      bool
 		uefi     bool
 		filename string
@@ -61,13 +61,13 @@ func TestSetPXEFilename(t *testing.T) {
 		{name: "PXE not allowed",
 			filename: "/pxe-is-not-allowed"},
 		{name: "packet iPXE PXE allowed",
-			packet: true, id: "$instance_id", allowPXE: true, filename: "http://" + conf.PublicFQDN + "/auto.ipxe"},
+			ouriPXE: true, id: "$instance_id", allowPXE: true, filename: "http://" + conf.PublicFQDN + "/auto.ipxe"},
 	}
 
 	for i, tt := range setPXEFilenameTests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Logf("index=%d hState=%q id=%q iState=%q slug=%q plan=%q allowPXE=%v packet=%v arm=%v uefi=%v filename=%q",
-				i, tt.hState, tt.id, tt.iState, tt.slug, tt.plan, tt.allowPXE, tt.packet, tt.arm, tt.uefi, tt.filename)
+			t.Logf("index=%d hState=%q id=%q iState=%q slug=%q plan=%q allowPXE=%v ouriPXE=%v arm=%v uefi=%v filename=%q",
+				i, tt.hState, tt.id, tt.iState, tt.slug, tt.plan, tt.allowPXE, tt.ouriPXE, tt.arm, tt.uefi, tt.filename)
 
 			if tt.plan == "" {
 				tt.plan = "0"
@@ -81,7 +81,7 @@ func TestSetPXEFilename(t *testing.T) {
 				},
 			}
 			j := Job{
-				Logger: joblog.With("index", i, "hState", tt.hState, "id", tt.id, "iState", tt.iState, "slug", tt.slug, "plan", tt.plan, "allowPXE", tt.allowPXE, "packet", tt.packet, "arm", tt.arm, "uefi", tt.uefi, "filename", tt.filename),
+				Logger: joblog.With("index", i, "hState", tt.hState, "id", tt.id, "iState", tt.iState, "slug", tt.slug, "plan", tt.plan, "allowPXE", tt.allowPXE, "ouriPXE", tt.ouriPXE, "arm", tt.arm, "uefi", tt.uefi, "filename", tt.filename),
 				hardware: &packet.HardwareCacher{
 					ID:       "$hardware_id",
 					AllowPXE: tt.allowPXE,
@@ -92,7 +92,7 @@ func TestSetPXEFilename(t *testing.T) {
 				instance: instance,
 			}
 			rep := dhcp4.NewPacket(42)
-			j.setPXEFilename(&rep, tt.packet, tt.arm, tt.uefi)
+			j.setPXEFilename(&rep, tt.ouriPXE, tt.arm, tt.uefi)
 			filename := string(bytes.TrimRight(rep.File(), "\x00"))
 
 			if tt.filename != filename {
