@@ -103,13 +103,12 @@ func (j Job) setPXEFilename(rep *dhcp4.Packet, isOuriPXE, isARM, isUEFI bool) {
 			// We set a filename because if a machine is actually trying to PXE and nothing is sent it may hang for
 			// a while waiting for any possible ProxyDHCP packets and it would delay booting from disks.
 			// This short cuts all that when we know we want to be booting from disk.
-			dhcp.SetFilename(rep, "/pxe-is-not-allowed", conf.PublicIPv4, true)
+			dhcp.SetFilename(rep, "/pxe-is-not-allowed", conf.PublicIPv4)
 		}
 		return
 	}
 
 	var filename string
-	var pxeClient bool
 	if !isOuriPXE {
 		if j.PArch() == "hua" || j.PArch() == "2a2" {
 			filename = "snp-hua.efi"
@@ -126,9 +125,8 @@ func (j Job) setPXEFilename(rep *dhcp4.Packet, isOuriPXE, isARM, isUEFI bool) {
 			return
 		}
 	} else {
-		pxeClient = true
 		filename = "http://" + conf.PublicFQDN + "/auto.ipxe"
 	}
 
-	dhcp.SetFilename(rep, filename, conf.PublicIPv4, pxeClient)
+	dhcp.SetFilename(rep, filename, conf.PublicIPv4)
 }
