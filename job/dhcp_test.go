@@ -25,6 +25,7 @@ func TestSetPXEFilename(t *testing.T) {
 		packet   bool
 		arm      bool
 		uefi     bool
+		snp      bool
 		filename string
 	}{
 		{name: "just in_use",
@@ -43,6 +44,8 @@ func TestSetPXEFilename(t *testing.T) {
 		{name: "active custom ipxe with allow pxe",
 			hState: "in_use", id: "$instance_id", iState: "active", allowPXE: true,
 			filename: "undionly.kpxe"},
+		{name: "snp" hState: "in_use", id: "$instance_id", iState: "active", allowPXE: true, snp: true,
+			filename: "snp.efi"},
 		{name: "hua",
 			plan: "hua", filename: "snp-hua.efi"},
 		{name: "2a2",
@@ -87,7 +90,7 @@ func TestSetPXEFilename(t *testing.T) {
 				instance: instance,
 			}
 			rep := dhcp4.NewPacket(42)
-			j.setPXEFilename(&rep, tt.packet, tt.arm, tt.uefi)
+			j.setPXEFilename(&rep, tt.packet, tt.arm, tt.uefi, tt.snp)
 			filename := string(bytes.TrimRight(rep.File(), "\x00"))
 
 			if tt.filename != filename {

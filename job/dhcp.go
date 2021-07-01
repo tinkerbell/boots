@@ -69,12 +69,14 @@ func (j Job) configureDHCP(rep, req *dhcp4.Packet) bool {
 			j.With("dhcp", isUEFI, "job", j.IsUEFI()).Info("uefi mismatch, using dhcp")
 		}
 
+		isSNP := dhcp.IsSNP(req)
+
 		isPacket := ipxe.IsPacketIPXE(req)
 		if isPacket {
 			ipxe.Setup(rep)
 		}
 
-		j.setPXEFilename(rep, isPacket, isARM, isUEFI)
+		j.setPXEFilename(rep, isPacket, isARM, isUEFI, isSNP)
 	}
 	return true
 }
@@ -97,7 +99,7 @@ func (j Job) areWeProvisioner() bool {
 	return j.hardware.HardwareProvisioner() == j.ProvisionerEngineName()
 }
 
-func (j Job) setPXEFilename(rep *dhcp4.Packet, isPacket, isARM, isUEFI bool) {
+func (j Job) setPXEFilename(rep *dhcp4.Packet, isPacket, isARM, isUEFI, isSNP bool) {
 	if j.HardwareState() == "in_use" {
 		if j.InstanceID() == "" {
 			j.Error(errors.New("setPXEFilename called on a job with no instance"))
@@ -126,6 +128,8 @@ func (j Job) setPXEFilename(rep *dhcp4.Packet, isPacket, isARM, isUEFI bool) {
 			filename = "snp-hua.efi"
 		} else if isARM {
 			filename = "snp-nolacp.efi"
+		} else if isSNP {
+			filename = "snp.efi"
 		} else if isUEFI {
 			filename = "ipxe.efi"
 		} else {

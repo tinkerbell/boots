@@ -16,6 +16,7 @@ var tftpFiles = map[string][]byte{
 	"snp-nolacp.efi": ipxe.MustAsset("bin/snp-nolacp.efi"),
 	"ipxe.efi":       ipxe.MustAsset("bin/ipxe.efi"),
 	"snp-hua.efi":    ipxe.MustAsset("bin/snp-hua.efi"),
+	"snp.efi":        ipxe.MustAsset("bin/snp.efi"),
 }
 
 type tftpTransfer struct {

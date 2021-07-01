@@ -77,6 +77,10 @@ func IsUEFI(req *dhcp4.Packet) bool {
 	return strings.Contains(strings.ToLower(ProcessorArchType(req)), "uefi")
 }
 
+func IsSNP(req *dhcp4.Packet) bool {
+	return ProcessorArchType(req) == "x64 UEFI"
+}
+
 func IsPXE(req *dhcp4.Packet) bool {
 	_, ok := req.GetOption(dhcp4.OptionUUIDGUID)
 	if ok {

@@ -22,6 +22,9 @@ bin/undionly.kpxe | bin/ipxe.lkrn)
 bin-x86_64-efi/ipxe.efi)
 	cp "$topdir/src/config/local/general.efi.h" "$topdir/src/config/local/general.h"
 	;;
+bin-x86_64-efi/snp.efi)
+	cp "$topdir/src/config/local/general.efi.h" "$topdir/src/config/local/general.h"
+	;;
 bin-arm64-efi/snp.efi)
 	rm "$topdir/src/config/local/isa.h"
 	cp "$topdir/src/config/local/general.efi.h" "$topdir/src/config/local/general.h"
