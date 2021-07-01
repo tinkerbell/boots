@@ -28,6 +28,8 @@ func TestMain(m *testing.M) {
 }
 
 func TestDiscoverHardwareFromDHCP(t *testing.T) {
+	logger, _ := log.Init("tests")
+
 	for _, test := range []struct {
 		name      string
 		err       error
@@ -78,6 +80,7 @@ func TestDiscoverHardwareFromDHCP(t *testing.T) {
 				baseURL:        u,
 				http:           s.Client(),
 				hardwareClient: cMock,
+				logger:         logger,
 			}
 			m, _ := net.ParseMAC("00:00:ba:dd:be:ef")
 			d, err := c.DiscoverHardwareFromDHCP(m, net.ParseIP("127.0.0.1"), "")

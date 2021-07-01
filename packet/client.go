@@ -11,6 +11,7 @@ import (
 
 	cacherClient "github.com/packethost/cacher/client"
 	"github.com/packethost/pkg/env"
+	"github.com/packethost/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/tinkerbell/boots/httplog"
 	tinkClient "github.com/tinkerbell/tink/client"
@@ -28,9 +29,10 @@ type Client struct {
 	authToken      string
 	hardwareClient hardwareGetter
 	workflowClient tw.WorkflowServiceClient
+	logger         log.Logger
 }
 
-func NewClient(consumerToken, authToken string, baseURL *url.URL) (*Client, error) {
+func NewClient(logger log.Logger, consumerToken, authToken string, baseURL *url.URL) (*Client, error) {
 	t, ok := http.DefaultTransport.(*http.Transport)
 	if !ok {
 		return nil, errors.New("unexpected type for http.DefaultTransport")
@@ -80,6 +82,7 @@ func NewClient(consumerToken, authToken string, baseURL *url.URL) (*Client, erro
 		authToken:      authToken,
 		hardwareClient: hg,
 		workflowClient: wg,
+		logger:         logger,
 	}, nil
 }
 

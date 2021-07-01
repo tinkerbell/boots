@@ -69,7 +69,7 @@ func main() {
 		mainlog.With("envvar", "API_AUTH_TOKEN").Fatal(err)
 		panic(err)
 	}
-	client, err = packet.NewClient(consumer, auth, apiBaseURL)
+	client, err = packet.NewClient(l, consumer, auth, apiBaseURL)
 	if err != nil {
 		mainlog.Fatal(err)
 	}
