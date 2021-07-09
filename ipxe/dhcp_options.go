@@ -68,16 +68,16 @@ func Setup(rep *dhcp4.Packet) {
 	rep.SetIP(dhcp4.OptionLogServer, conf.PublicSyslogIPv4) // Have iPXE send syslog to me.
 }
 
-var packetVersion = []byte{1, 0, 255}
+var ouriPXEVersion = []byte{1, 0, 255}
 
-// IsPacketIPXE returns bool depending on if the request originated with packet's ipxe build
-func IsPacketIPXE(req *dhcp4.Packet) bool {
+// IsOuriPXE returns bool depending on if the request originated from our custom built/embedded iPXE
+func IsOuriPXE(req *dhcp4.Packet) bool {
 	// TODO: make this actually check for iPXE and use ipxe' build system's ability to set name.
 	// This way we could set to something like "Packet iPXE" and then just look for that in the identifier sent in dhcp.
 	// This also means we won't lose ipxe's version number for logging and such.
 	if om := GetEncapsulatedOptions(req); om != nil {
 		if ov, ok := om.GetOption(OptionVersion); ok {
-			return ok && bytes.Equal(ov, packetVersion)
+			return ok && bytes.Equal(ov, ouriPXEVersion)
 		}
 	}
 

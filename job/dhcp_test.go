@@ -1,95 +1,78 @@
 package job
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
-	dhcp4 "github.com/packethost/dhcp4-go"
+	"github.com/google/uuid"
 	assert "github.com/stretchr/testify/require"
 	"github.com/tinkerbell/boots/conf"
 	"github.com/tinkerbell/boots/packet"
 )
 
-func TestSetPXEFilename(t *testing.T) {
+func TestGetPXEFilename(t *testing.T) {
 	conf.PublicFQDN = "boots-testing.packet.net"
 
-	var setPXEFilenameTests = []struct {
+	var getPXEFilenameTests = []struct {
 		name     string
-		hState   string
-		id       string
 		iState   string
-		slug     string
-		plan     string
 		allowPXE bool
-		packet   bool
-		arm      bool
-		uefi     bool
+		ouriPXE  bool
+		arch     string
+		firmware string
 		filename string
 	}{
-		{name: "just in_use",
-			hState: "in_use"},
-		{name: "no instance state",
-			hState: "in_use", id: "$instance_id", iState: ""},
-		{name: "instance not active",
-			hState: "in_use", id: "$instance_id", iState: "not_active"},
-		{name: "instance active",
-			hState: "in_use", id: "$instance_id", iState: "active"},
-		{name: "active not custom ipxe",
-			hState: "in_use", id: "$instance_id", iState: "active", slug: "not_custom_ipxe"},
-		{name: "active custom ipxe",
-			hState: "in_use", id: "$instance_id", iState: "active", slug: "custom_ipxe",
+		{name: "inactive instance",
+			iState: "not_active"},
+		{name: "active instance",
+			iState:   "active",
+			filename: "/pxe-is-not-allowed"},
+		{name: "PXE is allowed for non active instance",
+			iState: "not_active", allowPXE: true, arch: "x86", firmware: "bios",
 			filename: "undionly.kpxe"},
-		{name: "active custom ipxe with allow pxe",
-			hState: "in_use", id: "$instance_id", iState: "active", allowPXE: true,
-			filename: "undionly.kpxe"},
-		{name: "hua",
-			plan: "hua", filename: "snp-hua.efi"},
+		{name: "our embedded iPXE wants iPXE script",
+			ouriPXE: true, allowPXE: true,
+			filename: "http://" + conf.PublicFQDN + "/auto.ipxe"},
 		{name: "2a2",
-			plan: "2a2", filename: "snp-hua.efi"},
+			arch: "hua", allowPXE: true,
+			filename: "snp-hua.efi"},
 		{name: "arm",
-			arm: true, filename: "snp-nolacp.efi"},
-		{name: "x86 uefi",
-			uefi: true, filename: "ipxe.efi"},
-		{name: "all defaults",
+			arch: "arm", firmware: "uefi", allowPXE: true,
+			filename: "snp-nolacp.efi"},
+		{name: "hua",
+			arch: "hua", allowPXE: true,
+			filename: "snp-hua.efi"},
+		{name: "x86 bios",
+			arch: "x86", firmware: "bios", allowPXE: true,
 			filename: "undionly.kpxe"},
-		{name: "packet iPXE",
-			packet: true, filename: "/nonexistent"},
-		{name: "packet iPXE PXE allowed",
-			packet: true, id: "$instance_id", allowPXE: true, filename: "http://" + conf.PublicFQDN + "/auto.ipxe"},
+		{name: "x86 uefi",
+			arch: "x86", firmware: "uefi", allowPXE: true,
+			filename: "ipxe.efi"},
+		{name: "unknown arch",
+			arch: "riscv", allowPXE: true},
+		{name: "unknown firmware",
+			arch: "coreboot", allowPXE: true},
 	}
 
-	for i, tt := range setPXEFilenameTests {
+	for i, tt := range getPXEFilenameTests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Logf("index=%d hState=%q id=%q iState=%q slug=%q plan=%q allowPXE=%v packet=%v arm=%v uefi=%v filename=%q",
-				i, tt.hState, tt.id, tt.iState, tt.slug, tt.plan, tt.allowPXE, tt.packet, tt.arm, tt.uefi, tt.filename)
-
-			if tt.plan == "" {
-				tt.plan = "0"
-			}
+			t.Logf("index=%d iState=%q allowPXE=%v ouriPXE=%v arch=%v platfrom=%v filename=%q",
+				i, tt.iState, tt.allowPXE, tt.ouriPXE, tt.arch, tt.firmware, tt.filename)
 
 			instance := &packet.Instance{
-				ID:       tt.id,
-				State:    packet.InstanceState(tt.iState),
-				AllowPXE: tt.allowPXE,
-				OSV: &packet.OperatingSystem{
-					OsSlug: tt.slug,
-				},
+				ID:    uuid.New().String(),
+				State: packet.InstanceState(tt.iState),
 			}
 			j := Job{
-				Logger: joblog.With("index", i, "hState", tt.hState, "id", tt.id, "iState", tt.iState, "slug", tt.slug, "plan", tt.plan, "allowPXE", tt.allowPXE, "packet", tt.packet, "arm", tt.arm, "uefi", tt.uefi, "filename", tt.filename),
+				Logger: joblog.With("index", i, "iState", tt.iState, "allowPXE", tt.allowPXE, "ouriPXE", tt.ouriPXE, "arch", tt.arch, "firmware", tt.firmware, "filename", tt.filename),
 				hardware: &packet.HardwareCacher{
-					ID:       "$hardware_id",
-					State:    packet.HardwareState(tt.hState),
-					PlanSlug: "baremetal_" + tt.plan,
+					ID:       uuid.New().String(),
+					AllowPXE: tt.allowPXE,
 					Instance: instance,
 				},
 				instance: instance,
 			}
-			rep := dhcp4.NewPacket(42)
-			j.setPXEFilename(&rep, tt.packet, tt.arm, tt.uefi)
-			filename := string(bytes.TrimRight(rep.File(), "\x00"))
-
+			filename := j.getPXEFilename(tt.arch, tt.firmware, tt.ouriPXE)
 			if tt.filename != filename {
 				t.Fatalf("unexpected filename want:%q, got:%q", tt.filename, filename)
 			}

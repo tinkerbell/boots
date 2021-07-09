@@ -97,15 +97,12 @@ func SetupPXE(rep, req *dhcp4.Packet) bool {
 	return true
 }
 
-func SetFilename(rep *dhcp4.Packet, filename string, nextServer net.IP, pxeClient bool) {
+func SetFilename(rep *dhcp4.Packet, filename string, nextServer net.IP) {
 	file := rep.File()
 	if len(filename) > len(file) {
 		err := errors.New("filename too long, would be truncated")
 		// req CHaddr and XID == req's
 		dhcplog.With("mac", rep.GetCHAddr(), "xid", rep.GetXID(), "filename", filename).Fatal(err)
-	}
-	if pxeClient {
-		rep.SetString(dhcp4.OptionClassID, "PXEClient")
 	}
 	rep.SetSIAddr(nextServer) // next-server: IP address of the TFTP/HTTP Server.
 	copy(file, filename)      // filename: Executable (or iPXE script) to boot from.
