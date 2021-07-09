@@ -144,6 +144,8 @@ func (c *Client) DiscoverHardwareFromDHCP(mac net.HardwareAddr, giaddr net.IP, c
 		return nil, errors.Wrap(err, "unmarshalling api discovery")
 	}
 
+	c.logger.With("giaddr", req.GIADDR, "mac", req.MAC).Debug("hardware discovery by mac")
+
 	var res DiscoveryCacher
 	if err := c.Post("/staff/cacher/hardware-discovery", mimeJSON, bytes.NewReader(b), &res); err != nil {
 		return nil, err
