@@ -27,21 +27,21 @@ func (t tftpConnTester) RemoteAddr() net.Addr {
 func TestReadFile(t *testing.T) {
 	fileContents := "you downloaded a tftp file"
 	tests := map[string]struct {
-		expectedResp     string
-		allowPxe         bool
-		failCreateFromIP bool
-		err              error
+		expectedResp             string
+		allowPxe                 bool
+		failCreateFromRemoteAddr bool
+		err                      error
 	}{
-		"success":                {expectedResp: fileContents, allowPxe: true},
-		"fail failCreateFromIP":  {failCreateFromIP: true, err: fmt.Errorf("permission denied")},
-		"fail allowPxe is false": {err: fmt.Errorf("permission denied")},
+		"success":                       {expectedResp: fileContents, allowPxe: true},
+		"fail failCreateFromRemoteAddr": {failCreateFromRemoteAddr: true, err: fmt.Errorf("permission denied")},
+		"fail allowPxe is false":        {err: fmt.Errorf("permission denied")},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			monkey.Patch(job.CreateFromIP, func(_ net.IP) (job.Job, error) {
+			monkey.Patch(job.CreateFromRemoteAddr, func(_ string) (job.Job, error) {
 				var err error
-				if tc.failCreateFromIP {
+				if tc.failCreateFromRemoteAddr {
 					err = tc.err
 				}
 				return job.Job{}, err

@@ -96,11 +96,11 @@ func CreateFromRemoteAddr(ip string) (Job, error) {
 	if err != nil {
 		return Job{}, errors.Wrap(err, "splitting host:ip")
 	}
-	return CreateFromIP(net.ParseIP(host))
+	return createFromIP(net.ParseIP(host))
 }
 
-// CreateFromIP looksup hardware using the IP from cacher to create a job
-func CreateFromIP(ip net.IP) (Job, error) {
+// createFromIP looksup hardware using the IP from cacher to create a job
+func createFromIP(ip net.IP) (Job, error) {
 	j := Job{
 		ip:    ip,
 		start: time.Now(),
