@@ -40,5 +40,5 @@ bin-arm64-efi/snp.efi)
 esac
 
 rm "$topdir"/src/config/local/general.*.h
-make -C "$topdir/src" VERSION_PATCH=255 EXTRAVERSION="+ ($short_version)" "$build"
+make -C "$topdir/src" VERSION_PATCH=255 EXTRAVERSION="+ ($short_version)" DEBUG=http "$build"
 cp "$topdir/src/$build" .
