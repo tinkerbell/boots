@@ -17,6 +17,9 @@ CGO_ENABLED := 0
 export CGO_ENABLED
 
 GitRev := $(shell git rev-parse --short HEAD)
+SOURCE_DATE_EPOCH := $(shell git log -1 --pretty=%ct)
+export SOURCE_DATE_EPOCH
+
 crossbinaries := cmd/boots/boots-linux-386 cmd/boots/boots-linux-amd64 cmd/boots/boots-linux-arm64 cmd/boots/boots-linux-armv6 cmd/boots/boots-linux-armv7
 cmd/boots/boots-linux-386:   FLAGS=GOARCH=386
 cmd/boots/boots-linux-amd64: FLAGS=GOARCH=amd64
